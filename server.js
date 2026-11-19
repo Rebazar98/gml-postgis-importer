@@ -55,6 +55,8 @@ app.post('/import', upload.any(), async (req, res) => {
     }
     const ssl = PGSSLMODE ? ` sslmode=${PGSSLMODE}` : '';
     const conn = `PG:"host=${PGHOST} port=${PGPORT} dbname=${PGDATABASE} user=${PGUSER} password='${PGPASSWORD}'${ssl}"`;
+    // Oculta la contraseña en logs y respuestas
+    const hide = (s) => String(s || '').split(PGPASSWORD).join('***');
 
     // --- Params ---
     const b = req.body || {};
@@ -132,7 +134,7 @@ app.post('/import', upload.any(), async (req, res) => {
       `ogr2ogr -f "PostgreSQL" ${conn} "${srcForOgr}" ${layerArg} ` +
       `-nln ${table} -lco GEOMETRY_NAME=geom ${promoteArg} ${srsAssign} ${reproject} -overwrite -progress`;
 
-    console.log('[import] CMD =>', cmd);
+    console.log('[import] CMD =>', hide(cmd));
 
     exec(
       cmd,
@@ -141,9 +143,9 @@ app.post('/import', upload.any(), async (req, res) => {
         if (removeLocalAfter) cleanup(localPath);
         const payload = {
           ok: !err,
-          cmd,
-          stdout: String(stdout || ''),
-          stderr: String(stderr || ''),
+          cmd: hide(cmd),
+          stdout: hide(stdout),
+          stderr: hide(stderr),
         };
         if (err) {
           console.error('[ogr2ogr:error]', payload.stderr || payload.stdout);
